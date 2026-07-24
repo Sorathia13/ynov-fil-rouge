@@ -3,6 +3,8 @@
 # 1) Build stage: install all deps, generate Prisma client, compile TypeScript
 FROM node:22-alpine AS build
 WORKDIR /app
+# openssl is required by Prisma engines on Alpine (musl)
+RUN apk add --no-cache openssl
 COPY package*.json ./
 RUN npm ci
 COPY prisma ./prisma
@@ -14,6 +16,7 @@ RUN npm run build
 # 2) Production deps stage: only production node_modules + Prisma client
 FROM node:22-alpine AS deps
 WORKDIR /app
+RUN apk add --no-cache openssl
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY prisma ./prisma
@@ -23,8 +26,8 @@ RUN npx prisma generate
 FROM node:22-alpine AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
-# dumb-init for correct signal handling (graceful shutdown)
-RUN apk add --no-cache dumb-init
+# dumb-init for correct signal handling (graceful shutdown); openssl for Prisma
+RUN apk add --no-cache dumb-init openssl
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
