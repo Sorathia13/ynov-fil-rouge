@@ -40,7 +40,7 @@ flowchart LR
     OBS["Prometheus / Grafana"]
 
     B -->|HTTPS| N
-    N -->|/ (SPA)| B
+    N -->|"SPA statique"| B
     N -->|/api| API
     API -->|Prisma 5| DB
     API -.->|/metrics| OBS
@@ -128,14 +128,14 @@ Le schéma est géré par **Prisma** sur **PostgreSQL 16** (migration initiale +
 
 ```mermaid
 erDiagram
-    User ||--o{ RefreshToken : possède
+    User ||--o{ RefreshToken : "possède"
     User ||--o| Professional : "profil pro (0..1)"
     User ||--o{ Appointment : "réserve (client)"
-    Professional ||--o{ Service : propose
-    Professional ||--o{ WorkingHours : définit
-    Professional ||--o{ TimeOff : déclare
-    Professional ||--o{ Appointment : reçoit
-    Service ||--o{ Appointment : concerne
+    Professional ||--o{ Service : "propose"
+    Professional ||--o{ WorkingHours : "définit"
+    Professional ||--o{ TimeOff : "déclare"
+    Professional ||--o{ Appointment : "reçoit"
+    Service ||--o{ Appointment : "concerne"
 
     User {
         string id PK
@@ -208,7 +208,7 @@ Le scénario ci-dessous couvre à la fois le cas nominal et le **cas de conflit*
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client as Client (SPA React)
+    actor Client as Client SPA React
     participant API as API Express<br/>(routes + middlewares)
     participant UC as AppointmentService<br/>(use-case)
     participant SE as SchedulingEngine<br/>(domaine)
