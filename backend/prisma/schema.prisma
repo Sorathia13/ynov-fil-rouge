@@ -1,0 +1,169 @@
+// SmartBooking — Prisma schema
+// Datasource: PostgreSQL. ORM: Prisma.
+// This schema is the single source of truth for the persistence model.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Application roles. RBAC is enforced in the HTTP layer via middleware.
+enum Role {
+  CLIENT
+  PRO
+  ADMIN
+}
+
+/// Lifecycle of an appointment.
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+/// A user account. A user may also own a Professional profile (role = PRO).
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  phone        String?
+  avatarUrl    String?
+  role         Role     @default(CLIENT)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  professional        Professional?
+  appointmentsAsClient Appointment[] @relation("ClientAppointments")
+  refreshTokens       RefreshToken[]
+  auditLogs           AuditLog[]
+
+  @@index([role])
+  @@map("users")
+}
+
+/// Persisted (hashed) refresh tokens enabling rotation and revocation.
+model RefreshToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+/// A professional profile owned by a User (role PRO).
+model Professional {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName String
+  bio          String?
+  timezone     String   @default("Europe/Paris")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  services     Service[]
+  workingHours WorkingHours[]
+  timeOff      TimeOff[]
+  appointments Appointment[]
+
+  @@map("professionals")
+}
+
+/// A bookable service (prestation) offered by a professional.
+model Service {
+  id              String   @id @default(uuid())
+  professionalId  String
+  professional    Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  name            String
+  description     String?
+  durationMinutes Int
+  priceCents      Int      @default(0)
+  color           String   @default("#2563eb")
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  appointments Appointment[]
+
+  @@index([professionalId])
+  @@map("services")
+}
+
+/// Recurring weekly availability. weekday: 0 = Sunday ... 6 = Saturday.
+/// startMinute/endMinute are minutes from midnight in the professional's timezone.
+model WorkingHours {
+  id             String   @id @default(uuid())
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  weekday        Int
+  startMinute    Int
+  endMinute      Int
+
+  @@index([professionalId])
+  @@map("working_hours")
+}
+
+/// Exceptional unavailability (holidays, breaks, days off).
+model TimeOff {
+  id             String   @id @default(uuid())
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  startAt        DateTime
+  endAt          DateTime
+  reason         String?
+
+  @@index([professionalId])
+  @@map("time_off")
+}
+
+/// A booked appointment between a client and a professional for a service.
+model Appointment {
+  id             String   @id @default(uuid())
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         User     @relation("ClientAppointments", fields: [clientId], references: [id], onDelete: Cascade)
+  serviceId      String
+  service        Service  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  startAt        DateTime
+  endAt          DateTime
+  status         AppointmentStatus @default(PENDING)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([professionalId, startAt])
+  @@index([clientId])
+  @@index([status])
+  @@map("appointments")
+}
+
+/// Immutable audit trail for sensitive actions (admin journal).
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
