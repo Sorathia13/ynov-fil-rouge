@@ -17,6 +17,8 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "test": "vitest run",
+    "test:unit": "vitest run src/domain src/shared",
+    "test:integration": "vitest run src/interface",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "prisma:generate": "prisma generate",
