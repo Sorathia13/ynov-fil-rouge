@@ -11,13 +11,7 @@
  * (the reference "now" is injected), so every branch is deterministically testable.
  */
 import { AppointmentEntity, BLOCKING_STATUSES } from '../entities';
-import {
-  Interval,
-  contains,
-  interval,
-  mergeIntervals,
-  overlaps,
-} from '../value-objects/interval';
+import { contains, interval, mergeIntervals, overlaps } from '../value-objects/interval';
 import { MINUTES_PER_DAY, MS_PER_MINUTE } from '../../shared/time';
 import {
   AvailabilityContext,
