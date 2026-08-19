@@ -1,0 +1,84 @@
+# Fiche de consignation d'anomalie (Bloc 4, C4.2.1)
+# Formulaire d'issue GitHub garantissant que chaque bogue est consigné avec les
+# informations permettant de le reproduire, de le qualifier et de le corriger.
+name: "Rapport d'anomalie"
+description: "Consigner un bogue détecté afin de déterminer le correctif à mettre en place"
+title: '[BUG] '
+labels: ['bug', 'à-trier']
+body:
+  - type: markdown
+    attributes:
+      value: "Merci de renseigner toutes les sections : elles conditionnent la reproductibilité et la correction de l'anomalie."
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Que se passe-t-il ? En quoi est-ce anormal ?
+    validations: { required: true }
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Étapes de reproduction
+      description: Suite d'actions minimale pour reproduire le bogue.
+      value: |
+        1. …
+        2. …
+        3. …
+    validations: { required: true }
+
+  - type: textarea
+    id: attendu
+    attributes:
+      label: Comportement attendu
+    validations: { required: true }
+
+  - type: textarea
+    id: obtenu
+    attributes:
+      label: Comportement obtenu
+    validations: { required: true }
+
+  - type: input
+    id: request-id
+    attributes:
+      label: requestId / trace
+      description: Le `requestId` présent dans la réponse d'erreur et les logs Winston (corrélation).
+    validations: { required: false }
+
+  - type: dropdown
+    id: severite
+    attributes:
+      label: Sévérité
+      options:
+        - S1 - bloquant (service indisponible / perte de données)
+        - S2 - majeur (fonctionnalité clé inutilisable)
+        - S3 - mineur (contournable)
+        - S4 - cosmétique
+    validations: { required: true }
+
+  - type: dropdown
+    id: priorite
+    attributes:
+      label: Priorité
+      options: ['P0 - immédiate', 'P1 - haute', 'P2 - normale', 'P3 - basse']
+    validations: { required: true }
+
+  - type: textarea
+    id: environnement
+    attributes:
+      label: Environnement
+      description: Version du logiciel (cf. CHANGELOG), navigateur/OS, rôle du compte.
+      value: |
+        - Version :
+        - Navigateur / OS :
+        - Rôle : CLIENT / PRO / ADMIN
+    validations: { required: true }
+
+  - type: textarea
+    id: analyse
+    attributes:
+      label: Analyse & préconisation de correction (rempli au triage)
+      description: Cause racine identifiée et piste de correctif.
+    validations: { required: false }

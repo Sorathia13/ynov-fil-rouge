@@ -1,0 +1,52 @@
+# Mise à jour automatique et surveillée des dépendances (Bloc 4, C4.1.1)
+# Dependabot ouvre chaque semaine des pull requests de mise à jour, testées par
+# la CI avant fusion. Périmètre : dépendances npm du backend et du frontend,
+# actions GitHub, et images de base Docker.
+version: 2
+updates:
+  # --- Backend (npm) ---
+  - package-ecosystem: 'npm'
+    directory: '/backend'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    open-pull-requests-limit: 5
+    groups:
+      # Regroupe les mises à jour mineures/correctives en une seule PR
+      mineures-et-correctives:
+        update-types: ['minor', 'patch']
+    labels: ['dependencies', 'backend']
+    commit-message:
+      prefix: 'chore(deps)'
+
+  # --- Frontend (npm) ---
+  - package-ecosystem: 'npm'
+    directory: '/frontend'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    open-pull-requests-limit: 5
+    groups:
+      mineures-et-correctives:
+        update-types: ['minor', 'patch']
+    labels: ['dependencies', 'frontend']
+    commit-message:
+      prefix: 'chore(deps)'
+
+  # --- Actions GitHub (CI) ---
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    labels: ['dependencies', 'ci']
+    commit-message:
+      prefix: 'chore(ci)'
+
+  # --- Images de base Docker ---
+  - package-ecosystem: 'docker'
+    directories: ['/backend', '/frontend']
+    schedule:
+      interval: 'weekly'
+    labels: ['dependencies', 'docker']
+    commit-message:
+      prefix: 'chore(docker)'

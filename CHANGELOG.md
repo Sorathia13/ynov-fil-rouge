@@ -8,6 +8,27 @@ Rubriques employées : **Ajouté** (nouvelles fonctionnalités), **Modifié** (�
 
 ---
 
+## [1.1.0] - 2026-08-19
+
+Travaux de **maintien en condition opérationnelle (BLOC 4)** : supervision proactive, surveillance des dépendances et industrialisation de la consignation des anomalies.
+
+### Ajouté
+
+- **Système d'alerte** (`monitoring/alert.rules.yml`) : règles Prometheus sur la disponibilité (`ApiIndisponible`), le taux d'erreurs 5xx, la latence p95, la saturation de la boucle d'événements, la mémoire, et un indicateur métier (pic de refus `409` sur la réservation).
+- **Alertmanager** (`monitoring/alertmanager.yml` + service `alertmanager` du profil `monitoring`) : regroupement, déduplication, routage par sévérité (critique → astreinte) et règles d'inhibition.
+- **Surveillance des dépendances** : `.github/dependabot.yml` (npm backend/frontend, actions GitHub, images Docker ; PR hebdomadaires groupées, testées par la CI avant fusion).
+- **Consignation des anomalies** : formulaire d'issue structuré (`.github/ISSUE_TEMPLATE/bug_report.yml`) — reproduction, `requestId`, sévérité/priorité, analyse.
+
+## [1.0.1] - 2026-07-24
+
+Correctifs d'exploitation détectés au **premier déploiement réel** de la pile Docker (anomalies qu'aucun test unitaire ne pouvait révéler).
+
+### Corrigé
+
+- **Démarrage de l'API en production** : le CLI `prisma` (jusqu'ici en `devDependency`) était absent de l'image de production ; `prisma migrate deploy` échouait au démarrage sous l'utilisateur non-root. → `prisma` déplacé en dépendance de production.
+- **Moteur Prisma sur Alpine** : `openssl` manquant empêchait Prisma de détecter sa cible. → ajouté aux trois étapes du `Dockerfile`.
+- **Healthcheck du conteneur web** : la sonde interrogeait `http://localhost/`, résolu en IPv6 alors que nginx n'écoute qu'en IPv4. → sonde basculée sur `http://127.0.0.1/`.
+
 ## [1.0.0] - 2026-07-23
 
 Première version stable et livrable du **BLOC 2** de la certification RNCP 39583 « Expert en développement logiciel ». Cette release industrialise la plateforme : conteneurisation, intégration continue, observabilité, documentation complète, accessibilité et sécurité.
@@ -170,6 +191,8 @@ Initialisation du projet, outillage et schéma de données.
 
 ---
 
+[1.1.0]: https://github.com/Sorathia13/ynov-fil-rouge/releases/tag/v1.1.0
+[1.0.1]: https://github.com/Sorathia13/ynov-fil-rouge/releases/tag/v1.0.1
 [1.0.0]: https://github.com/Sorathia13/ynov-fil-rouge/releases/tag/v1.0.0
 [0.4.0]: https://github.com/Sorathia13/ynov-fil-rouge/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Sorathia13/ynov-fil-rouge/releases/tag/v0.3.0

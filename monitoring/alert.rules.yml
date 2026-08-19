@@ -1,0 +1,65 @@
+# Règles d'alerte Prometheus — supervision de SmartBooking (Bloc 4, C4.1.2)
+# Évaluées toutes les 15 s (cf. evaluation_interval). Une alerte passe "firing"
+# quand sa condition reste vraie pendant la durée `for`, puis est routée par
+# Alertmanager selon sa sévérité.
+groups:
+  - name: disponibilite
+    rules:
+      - alert: ApiIndisponible
+        expr: up{job="smartbooking-api"} == 0
+        for: 1m
+        labels: { severity: critique }
+        annotations:
+          summary: "L'API SmartBooking ne répond plus"
+          description: "La cible {{ $labels.instance }} est injoignable depuis plus d'une minute (échec du scrape /metrics)."
+
+  - name: taux-erreur
+    rules:
+      - alert: TauxErreur5xxEleve
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m]))
+            / sum(rate(http_requests_total[5m])) > 0.05
+        for: 5m
+        labels: { severity: critique }
+        annotations:
+          summary: "Taux d'erreurs 5xx supérieur à 5 %"
+          description: "Plus de 5 % des requêtes renvoient une erreur serveur sur les 5 dernières minutes ({{ $value | humanizePercentage }})."
+
+  - name: latence
+    rules:
+      - alert: LatenceP95Degradee
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 10m
+        labels: { severity: avertissement }
+        annotations:
+          summary: "Latence p95 au-dessus de 1 s"
+          description: "Le 95e percentile du temps de réponse dépasse 1 s depuis 10 minutes (valeur : {{ $value | humanizeDuration }})."
+
+  - name: sante-processus
+    rules:
+      - alert: BoucleEvenementsSaturee
+        expr: nodejs_eventloop_lag_p99_seconds > 0.2
+        for: 5m
+        labels: { severity: avertissement }
+        annotations:
+          summary: "Boucle d'événements Node.js saturée"
+          description: "Le lag p99 de l'event loop dépasse 200 ms depuis 5 minutes : l'API sature (CPU ou opérations bloquantes)."
+      - alert: MemoireElevee
+        expr: process_resident_memory_bytes > 400e6
+        for: 10m
+        labels: { severity: avertissement }
+        annotations:
+          summary: "Consommation mémoire élevée"
+          description: "L'empreinte mémoire du processus API dépasse 400 Mo depuis 10 minutes (fuite mémoire possible)."
+
+  - name: metier
+    rules:
+      - alert: PicRefusReservation
+        expr: sum(rate(http_requests_total{route="/api/appointments",status="409"}[5m])) > 0.2
+        for: 10m
+        labels: { severity: info }
+        annotations:
+          summary: "Pic de réservations refusées (409)"
+          description: "Taux inhabituel de refus SLOT_UNAVAILABLE sur POST /appointments : forte contention sur l'agenda, à surveiller."

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question d'utilisation
+    url: https://github.com/Sorathia13/ynov-fil-rouge/discussions
+    about: Pour une question d'usage (support), ouvrez une discussion plutôt qu'une anomalie.

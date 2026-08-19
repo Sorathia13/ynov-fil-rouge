@@ -1,0 +1,43 @@
+# Alertmanager — routage et notification des alertes (Bloc 4, C4.1.2)
+# Reçoit les alertes de Prometheus, les regroupe, les déduplique et les route
+# vers le bon canal selon la sévérité. Les destinataires ci-dessous sont des
+# exemples : en production, renseigner un vrai webhook (Slack/Teams) ou SMTP.
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: 'defaut'
+  group_by: ['alertname', 'severity']
+  group_wait: 30s # attendre 30 s pour regrouper les alertes liées
+  group_interval: 5m
+  repeat_interval: 4h # ne pas re-notifier la même alerte avant 4 h
+  routes:
+    - matchers: ['severity="critique"']
+      receiver: 'astreinte'
+      repeat_interval: 1h # une alerte critique est relancée toutes les heures
+    - matchers: ['severity="info"']
+      receiver: 'journal'
+
+receivers:
+  - name: 'defaut'
+    webhook_configs:
+      - url: 'http://localhost:5001/alertes' # à remplacer par le canal de l'équipe
+        send_resolved: true
+
+  - name: 'astreinte'
+    # Exemple e-mail (à activer en renseignant smtp_* dans la section global)
+    webhook_configs:
+      - url: 'http://localhost:5001/astreinte'
+        send_resolved: true
+
+  - name: 'journal'
+    webhook_configs:
+      - url: 'http://localhost:5001/journal'
+        send_resolved: false
+
+# Évite de notifier une alerte "avertissement" quand une "critique" du même
+# service est déjà active.
+inhibit_rules:
+  - source_matchers: ['severity="critique"']
+    target_matchers: ['severity="avertissement"']
+    equal: ['alertname']
