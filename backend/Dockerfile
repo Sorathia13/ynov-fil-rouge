@@ -1,7 +1,7 @@
 # ---- SmartBooking API — multi-stage production image ----
 
 # 1) Build stage: install all deps, generate Prisma client, compile TypeScript
-FROM node:22-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
 # openssl is required by Prisma engines on Alpine (musl)
 RUN apk add --no-cache openssl
@@ -14,7 +14,7 @@ COPY src ./src
 RUN npm run build
 
 # 2) Production deps stage: only production node_modules + Prisma client
-FROM node:22-alpine AS deps
+FROM node:26-alpine AS deps
 WORKDIR /app
 RUN apk add --no-cache openssl
 COPY package*.json ./
@@ -23,7 +23,7 @@ COPY prisma ./prisma
 RUN npx prisma generate
 
 # 3) Runtime stage: minimal image, non-root user
-FROM node:22-alpine AS runtime
+FROM node:26-alpine AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 # dumb-init for correct signal handling (graceful shutdown); openssl for Prisma
