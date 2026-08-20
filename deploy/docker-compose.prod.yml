@@ -1,0 +1,74 @@
+# SmartBooking — déploiement de production (VM publique, ex. Oracle Cloud Always Free)
+# Caddy termine le TLS (HTTPS automatique via Let's Encrypt) et sert de reverse proxy.
+# Seul Caddy expose des ports publics (80/443) ; db/api/web restent internes au réseau.
+#
+# Lancement :  docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+name: smartbooking
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: smartbooking
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?definir POSTGRES_PASSWORD dans .env}
+      POSTGRES_DB: smartbooking
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U smartbooking -d smartbooking']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://smartbooking:${POSTGRES_PASSWORD}@db:5432/smartbooking?schema=public
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?definir JWT_ACCESS_SECRET dans .env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?definir JWT_REFRESH_SECRET dans .env}
+      CORS_ORIGIN: https://${DOMAIN}
+      LOG_LEVEL: info
+    expose:
+      - '4000' # interne uniquement (jamais publié sur Internet)
+
+  web:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /api # même origine : le proxy nginx route /api vers l'API
+    restart: unless-stopped
+    depends_on:
+      - api
+    expose:
+      - '80' # interne uniquement
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      DOMAIN: ${DOMAIN:?definir DOMAIN dans .env}
+      ACME_EMAIL: ${ACME_EMAIL:?definir ACME_EMAIL dans .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data # certificats Let's Encrypt persistés
+      - caddy-config:/config
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:

@@ -1,0 +1,9 @@
+# Reverse proxy + HTTPS automatique (Let's Encrypt) pour SmartBooking.
+# Le domaine et l'e-mail ACME sont injectés depuis le fichier .env.
+{$DOMAIN} {
+	encode gzip zstd
+	# Tout le trafic va vers le conteneur web (nginx), qui sert la SPA
+	# et proxifie déjà /api vers l'API. Caddy ne gère que le TLS.
+	reverse_proxy web:80
+	tls {$ACME_EMAIL}
+}
