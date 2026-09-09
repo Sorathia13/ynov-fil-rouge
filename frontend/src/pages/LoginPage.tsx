@@ -66,7 +66,7 @@ export function LoginPage() {
       </form>
       <p className="mt-4 text-center text-xs text-slate-500">
         Comptes de démo (mot de passe <code>Password123!</code>) :<br />
-        client@smartbooking.dev · pro@smartbooking.dev
+        client@smartbooking.dev · pro@smartbooking.dev · admin@smartbooking.dev
       </p>
     </div>
   );
