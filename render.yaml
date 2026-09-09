@@ -2,14 +2,17 @@
 # But : une URL live temporaire pour l'oral. Ce n'est pas la config de production
 # (voir deploy/ pour l'approche Docker + Caddy sur VM).
 #
-# Après le 1er déploiement, lancer le seed UNE SEULE fois via le Shell du service
-# "smartbooking-api" :   npm run db:seed
-# (comptes démo : client@ / pro@ / admin@smartbooking.dev — mot de passe Password123!)
+# Le seed (comptes démo) tourne AUTOMATIQUEMENT au démarrage (startCommand) : il est
+# idempotent, donc pas de doublon même si le service se réveille souvent.
+# Comptes démo : client@ / pro@ / admin@smartbooking.dev — mot de passe Password123!
 #
 # Limites connues (plan gratuit) :
 #  - l'API s'endort après ~15 min d'inactivité (réveil ~1 min) → la réveiller avant l'oral.
 #  - le refresh-token cross-domaine (cookie SameSite=Lax) ne repartira pas au-delà de la
 #    durée du token d'accès (~15 min). Suffisant pour une démo courte.
+#
+# NB : le service API a reçu le suffixe "-2p9q" (nom déjà pris) → VITE_API_URL pointe
+# vers l'URL réelle de l'API.
 
 databases:
   - name: smartbooking-db
@@ -25,9 +28,9 @@ services:
     plan: free
     rootDir: backend
     # --include=dev : NODE_ENV=production ferait sauter les devDependencies (TypeScript,
-    # @types/node) nécessaires au build ; on force leur installation.
+    # @types/node, tsx) nécessaires au build et au seed ; on force leur installation.
     buildCommand: npm ci --include=dev && npm run prisma:generate && npm run build
-    startCommand: npm run prisma:migrate && npm run start
+    startCommand: npm run prisma:migrate && npm run db:seed && npm run start
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
@@ -54,7 +57,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        value: https://smartbooking-api.onrender.com/api
+        value: https://smartbooking-api-2p9q.onrender.com/api
     routes:
       - type: rewrite
         source: /*
