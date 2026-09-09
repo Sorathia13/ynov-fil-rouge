@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { Alert } from '../components/ui/Alert';
@@ -7,7 +7,7 @@ import { Spinner } from '../components/ui/Spinner';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { formatDateTime } from '../lib/format';
-import type { Appointment, Paginated, Professional } from '../types';
+import type { Appointment, AppointmentStatus, Paginated, Professional, User } from '../types';
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
@@ -75,6 +75,7 @@ function ClientDashboard() {
 }
 
 function ProDashboard() {
+  const queryClient = useQueryClient();
   const profileQuery = useQuery({
     queryKey: ['my-professional'],
     retry: false,
@@ -94,6 +95,12 @@ function ProDashboard() {
     enabled: Boolean(professionalId),
     queryFn: async () =>
       (await api.get<Paginated<Appointment>>(`/appointments/professional/${professionalId}`)).data,
+  });
+
+  const updateStatus = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: AppointmentStatus }) =>
+      api.patch(`/appointments/${id}/status`, { status }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['pro-appointments', professionalId] }),
   });
 
   if (profileQuery.isLoading) return <Spinner label="Chargement de votre espace…" />;
@@ -116,13 +123,14 @@ function ProDashboard() {
     .filter((a) => new Date(a.startAt).getTime() > now && a.status !== 'CANCELLED')
     .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
   const thisWeek = upcoming.filter((a) => new Date(a.startAt).getTime() <= weekEnd).length;
+  const pending = upcoming.filter((a) => a.status === 'PENDING').length;
 
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="RDV à venir" value={upcoming.length} />
+        <StatCard label="En attente" value={pending} />
         <StatCard label="Cette semaine" value={thisWeek} />
-        <StatCard label="Prestations actives" value={profileQuery.data.services.filter((s) => s.isActive).length} />
       </div>
 
       <section aria-labelledby="agenda-title">
@@ -141,9 +149,94 @@ function ProDashboard() {
         ) : (
           <ul className="space-y-3">
             {upcoming.slice(0, 8).map((a) => (
-              <li key={a.id} className="card flex items-center justify-between">
+              <li key={a.id} className="card flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm">{formatDateTime(a.startAt)}</p>
-                <StatusBadge status={a.status} />
+                <div className="flex items-center gap-3">
+                  <StatusBadge status={a.status} />
+                  {a.status === 'PENDING' && (
+                    <>
+                      <button
+                        type="button"
+                        className="btn-primary text-sm"
+                        disabled={updateStatus.isPending}
+                        onClick={() => updateStatus.mutate({ id: a.id, status: 'CONFIRMED' })}
+                      >
+                        Confirmer
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-danger text-sm"
+                        disabled={updateStatus.isPending}
+                        onClick={() => {
+                          if (confirm('Refuser ce rendez-vous ?')) {
+                            updateStatus.mutate({ id: a.id, status: 'CANCELLED' });
+                          }
+                        }}
+                      >
+                        Refuser
+                      </button>
+                    </>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function AdminDashboard() {
+  const usersQuery = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: async () => (await api.get<Paginated<User>>('/users')).data,
+  });
+
+  const users = usersQuery.data?.items ?? [];
+  const roleLabel: Record<string, string> = {
+    CLIENT: 'Client',
+    PRO: 'Professionnel',
+    ADMIN: 'Administrateur',
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-4">
+        <StatCard label="Comptes" value={usersQuery.data?.total ?? users.length} />
+        <StatCard label="Clients" value={users.filter((u) => u.role === 'CLIENT').length} />
+        <StatCard label="Professionnels" value={users.filter((u) => u.role === 'PRO').length} />
+        <StatCard label="Administrateurs" value={users.filter((u) => u.role === 'ADMIN').length} />
+      </div>
+
+      <section aria-labelledby="users-title">
+        <h2 id="users-title" className="mb-3 text-lg font-semibold">
+          Comptes de la plateforme
+        </h2>
+        {usersQuery.isLoading ? (
+          <Spinner />
+        ) : users.length === 0 ? (
+          <Alert variant="info">Aucun compte à afficher.</Alert>
+        ) : (
+          <ul className="space-y-2">
+            {users.map((u) => (
+              <li key={u.id} className="card flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-medium">
+                    {u.firstName} {u.lastName}
+                  </p>
+                  <p className="text-sm text-slate-500">{u.email}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                    {roleLabel[u.role] ?? u.role}
+                  </span>
+                  {!u.isActive && (
+                    <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                      Inactif
+                    </span>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
@@ -158,7 +251,13 @@ export function DashboardPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold">Bonjour {user?.firstName} 👋</h1>
-      {user?.role === 'PRO' ? <ProDashboard /> : <ClientDashboard />}
+      {user?.role === 'PRO' ? (
+        <ProDashboard />
+      ) : user?.role === 'ADMIN' ? (
+        <AdminDashboard />
+      ) : (
+        <ClientDashboard />
+      )}
     </div>
   );
 }
