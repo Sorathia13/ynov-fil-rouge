@@ -7,7 +7,7 @@ import { Spinner } from '../components/ui/Spinner';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { formatDateTime } from '../lib/format';
-import type { Appointment, AppointmentStatus, Paginated, Professional, User } from '../types';
+import type { Appointment, AppointmentStatus, Paginated, Professional, Role, User } from '../types';
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
@@ -188,17 +188,20 @@ function ProDashboard() {
 }
 
 function AdminDashboard() {
+  const { user: current } = useAuth();
+  const queryClient = useQueryClient();
   const usersQuery = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => (await api.get<Paginated<User>>('/users')).data,
   });
 
+  const adminUpdate = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { isActive?: boolean; role?: Role } }) =>
+      api.patch(`/users/${id}`, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
+  });
+
   const users = usersQuery.data?.items ?? [];
-  const roleLabel: Record<string, string> = {
-    CLIENT: 'Client',
-    PRO: 'Professionnel',
-    ADMIN: 'Administrateur',
-  };
 
   return (
     <div className="space-y-6">
@@ -219,26 +222,45 @@ function AdminDashboard() {
           <Alert variant="info">Aucun compte à afficher.</Alert>
         ) : (
           <ul className="space-y-2">
-            {users.map((u) => (
-              <li key={u.id} className="card flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="font-medium">
-                    {u.firstName} {u.lastName}
-                  </p>
-                  <p className="text-sm text-slate-500">{u.email}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                    {roleLabel[u.role] ?? u.role}
-                  </span>
-                  {!u.isActive && (
-                    <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
-                      Inactif
-                    </span>
-                  )}
-                </div>
-              </li>
-            ))}
+            {users.map((u) => {
+              const isSelf = u.id === current?.id;
+              return (
+                <li key={u.id} className="card flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-medium">
+                      {u.firstName} {u.lastName}
+                      {!u.isActive && (
+                        <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                          Inactif
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-sm text-slate-500">{u.email}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      aria-label={`Rôle de ${u.email}`}
+                      className="rounded border border-slate-300 px-2 py-1 text-sm disabled:opacity-50"
+                      value={u.role}
+                      disabled={isSelf || adminUpdate.isPending}
+                      onChange={(e) => adminUpdate.mutate({ id: u.id, data: { role: e.target.value as Role } })}
+                    >
+                      <option value="CLIENT">Client</option>
+                      <option value="PRO">Professionnel</option>
+                      <option value="ADMIN">Administrateur</option>
+                    </select>
+                    <button
+                      type="button"
+                      className={`text-sm ${u.isActive ? 'btn-danger' : 'btn-primary'}`}
+                      disabled={isSelf || adminUpdate.isPending}
+                      onClick={() => adminUpdate.mutate({ id: u.id, data: { isActive: !u.isActive } })}
+                    >
+                      {u.isActive ? 'Désactiver' : 'Réactiver'}
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
