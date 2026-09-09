@@ -24,10 +24,14 @@ services:
     name: smartbooking-api
     plan: free
     rootDir: backend
-    buildCommand: npm ci && npm run prisma:generate && npm run build
+    # --include=dev : NODE_ENV=production ferait sauter les devDependencies (TypeScript,
+    # @types/node) nécessaires au build ; on force leur installation.
+    buildCommand: npm ci --include=dev && npm run prisma:generate && npm run build
     startCommand: npm run prisma:migrate && npm run start
     healthCheckPath: /health
     envVars:
+      - key: NODE_VERSION
+        value: 20.18.1
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
