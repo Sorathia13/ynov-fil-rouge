@@ -32,7 +32,7 @@ export function authController(auth: AuthService) {
 
     refresh: asyncHandler(async (req, res) => {
       const token = (req.body?.refreshToken as string | undefined) ?? req.cookies?.[REFRESH_COOKIE];
-      if (!token) throw new UnauthorizedError('Missing refresh token');
+      if (!token) throw new UnauthorizedError('Jeton de rafraîchissement manquant');
       const result = await auth.refresh(token);
       res.cookie(REFRESH_COOKIE, result.refreshToken, refreshCookieOptions);
       res.json(result);

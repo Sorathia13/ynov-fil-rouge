@@ -7,7 +7,7 @@ import { verifyAccessToken } from '../../../infrastructure/auth/tokens';
 export const authenticate: RequestHandler = (req, _res, next) => {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
-    throw new UnauthorizedError('Missing Bearer token');
+    throw new UnauthorizedError("Jeton d'authentification manquant");
   }
   const payload = verifyAccessToken(header.slice('Bearer '.length));
   req.actor = { id: payload.sub, role: payload.role, email: payload.email };
@@ -20,7 +20,7 @@ export const requireRole =
   (req, _res, next) => {
     if (!req.actor) throw new UnauthorizedError();
     if (!roles.includes(req.actor.role)) {
-      throw new ForbiddenError('Insufficient role');
+      throw new ForbiddenError('Rôle insuffisant');
     }
     next();
   };

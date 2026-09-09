@@ -17,7 +17,7 @@ export class UserService {
 
   async getById(id: string): Promise<PublicUser> {
     const user = await this.users.findById(id);
-    if (!user) throw new NotFoundError('User');
+    if (!user) throw new NotFoundError('Utilisateur');
     return toPublicUser(user);
   }
 
@@ -28,9 +28,9 @@ export class UserService {
 
   async changePassword(id: string, currentPassword: string, newPassword: string): Promise<void> {
     const user = await this.users.findById(id);
-    if (!user) throw new NotFoundError('User');
+    if (!user) throw new NotFoundError('Utilisateur');
     const ok = await verifyPassword(currentPassword, user.passwordHash);
-    if (!ok) throw new UnauthorizedError('Current password is incorrect');
+    if (!ok) throw new UnauthorizedError('Le mot de passe actuel est incorrect');
     await this.users.update(id, { passwordHash: await hashPassword(newPassword) });
   }
 
@@ -43,21 +43,21 @@ export class UserService {
 
   async setActive(id: string, isActive: boolean): Promise<PublicUser> {
     const user = await this.users.findById(id);
-    if (!user) throw new NotFoundError('User');
+    if (!user) throw new NotFoundError('Utilisateur');
     const updated = await this.users.update(id, { isActive });
     return toPublicUser(updated);
   }
 
   async setRole(id: string, role: Role): Promise<PublicUser> {
     const user = await this.users.findById(id);
-    if (!user) throw new NotFoundError('User');
+    if (!user) throw new NotFoundError('Utilisateur');
     const updated = await this.users.update(id, { role });
     return toPublicUser(updated);
   }
 
   async adminUpdate(id: string, input: { isActive?: boolean; role?: Role }): Promise<PublicUser> {
     const user = await this.users.findById(id);
-    if (!user) throw new NotFoundError('User');
+    if (!user) throw new NotFoundError('Utilisateur');
     const updated = await this.users.update(id, input);
     return toPublicUser(updated);
   }

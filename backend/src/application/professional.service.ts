@@ -24,7 +24,7 @@ export class ProfessionalService {
     input: Omit<CreateProfessionalInput, 'userId'>,
   ): Promise<ProfessionalProfile> {
     const existing = await this.professionals.findByUserId(actor.id);
-    if (existing) throw new ConflictError('You already have a professional profile');
+    if (existing) throw new ConflictError('Vous avez déjà un profil professionnel');
     // Promote the account to PRO the first time a profile is created.
     await this.users.update(actor.id, { role: 'PRO' });
     return this.professionals.create({ userId: actor.id, ...input });
@@ -32,13 +32,13 @@ export class ProfessionalService {
 
   async getById(id: string): Promise<ProfessionalWithSchedule> {
     const pro = await this.professionals.findById(id);
-    if (!pro) throw new NotFoundError('Professional');
+    if (!pro) throw new NotFoundError('Professionnel');
     return pro;
   }
 
   async getMine(actor: AuthenticatedActor): Promise<ProfessionalWithSchedule> {
     const pro = await this.professionals.findByUserId(actor.id);
-    if (!pro) throw new NotFoundError('Professional profile');
+    if (!pro) throw new NotFoundError('Profil professionnel');
     return pro;
   }
 
@@ -62,9 +62,9 @@ export class ProfessionalService {
   ): Promise<WorkingHoursEntity[]> {
     await this.ensureOwnership(actor, id);
     for (const h of hours) {
-      if (h.weekday < 0 || h.weekday > 6) throw new ValidationError('weekday must be 0..6');
+      if (h.weekday < 0 || h.weekday > 6) throw new ValidationError('Le jour de la semaine doit être compris entre 0 et 6');
       if (h.startMinute < 0 || h.endMinute > 1440 || h.endMinute <= h.startMinute) {
-        throw new ValidationError('Invalid working hours range');
+        throw new ValidationError("Plage horaire d'ouverture invalide");
       }
     }
     return this.professionals.setWorkingHours(id, hours);
@@ -77,7 +77,7 @@ export class ProfessionalService {
   ): Promise<TimeOffEntity> {
     await this.ensureOwnership(actor, id);
     if (input.endAt.getTime() <= input.startAt.getTime()) {
-      throw new ValidationError('Time-off end must be after its start');
+      throw new ValidationError("La fin de l'indisponibilité doit être postérieure à son début");
     }
     return this.professionals.addTimeOff(id, input);
   }
@@ -92,9 +92,9 @@ export class ProfessionalService {
     professionalId: string,
   ): Promise<ProfessionalWithSchedule> {
     const pro = await this.professionals.findById(professionalId);
-    if (!pro) throw new NotFoundError('Professional');
+    if (!pro) throw new NotFoundError('Professionnel');
     if (actor.role !== 'ADMIN' && pro.userId !== actor.id) {
-      throw new ForbiddenError('You do not own this professional profile');
+      throw new ForbiddenError('Ce profil professionnel ne vous appartient pas');
     }
     return pro;
   }

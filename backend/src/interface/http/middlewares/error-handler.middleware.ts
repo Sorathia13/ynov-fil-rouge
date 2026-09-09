@@ -24,7 +24,7 @@ export function errorHandler(
 
   if (err instanceof ZodError) {
     res.status(422).json({
-      error: { code: 'VALIDATION_ERROR', message: 'Invalid request payload', details: err.flatten() },
+      error: { code: 'VALIDATION_ERROR', message: 'Données invalides', details: err.flatten() },
     });
     return;
   }
@@ -32,18 +32,18 @@ export function errorHandler(
   const asRecord = err as { name?: string; code?: string; message?: string; stack?: string };
 
   if (asRecord.name === 'JsonWebTokenError' || asRecord.name === 'TokenExpiredError') {
-    res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Invalid or expired token' } });
+    res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Jeton invalide ou expiré' } });
     return;
   }
 
   // Prisma unique constraint violation
   if (asRecord.code === 'P2002') {
-    res.status(409).json({ error: { code: 'CONFLICT', message: 'Resource already exists' } });
+    res.status(409).json({ error: { code: 'CONFLICT', message: 'Cette ressource existe déjà' } });
     return;
   }
   // Prisma record-not-found on update/delete
   if (asRecord.code === 'P2025') {
-    res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Resource not found' } });
+    res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Ressource introuvable' } });
     return;
   }
 
@@ -52,5 +52,5 @@ export function errorHandler(
     stack: asRecord.stack,
     requestId: req.requestId,
   });
-  res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } });
+  res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Une erreur inattendue est survenue' } });
 }

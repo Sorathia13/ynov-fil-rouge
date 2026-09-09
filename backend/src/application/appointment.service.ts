@@ -82,7 +82,7 @@ export class AppointmentService {
     const resolution = this.engine.resolve(input.startAt, service.durationMinutes, ctx, 3);
 
     if (!resolution.available) {
-      throw new SlotUnavailableError('The requested time slot is not available', {
+      throw new SlotUnavailableError("Le créneau demandé n'est pas disponible", {
         reason: resolution.reason,
         alternatives: resolution.alternatives.map(toSlotDTO),
       });
@@ -107,7 +107,7 @@ export class AppointmentService {
         freshCtx,
         3,
       );
-      throw new SlotUnavailableError('The requested time slot was just taken', {
+      throw new SlotUnavailableError("Ce créneau vient d'être réservé", {
         reason: 'CONFLICT' as UnavailabilityReason,
         alternatives: alternatives.map(toSlotDTO),
       });
@@ -123,13 +123,13 @@ export class AppointmentService {
     const appointment = await this.requireAppointment(appointmentId);
     await this.ensureCanManage(actor, appointment);
     const service = await this.services.findById(appointment.serviceId);
-    if (!service) throw new NotFoundError('Service');
+    if (!service) throw new NotFoundError('Prestation');
 
     const ctx = await this.buildBookingContext(appointment.professionalId, newStart, appointmentId);
     const check = this.engine.checkAvailability(newStart, service.durationMinutes, ctx);
     if (!check.available) {
       const alternatives = this.engine.suggestAlternatives(newStart, service.durationMinutes, ctx, 3);
-      throw new SlotUnavailableError('Cannot reschedule to that time', {
+      throw new SlotUnavailableError('Impossible de reprogrammer à cet horaire', {
         reason: check.reason,
         alternatives: alternatives.map(toSlotDTO),
       });
@@ -138,7 +138,7 @@ export class AppointmentService {
     const newEnd = new Date(newStart.getTime() + service.durationMinutes * MS_PER_MINUTE);
     const updated = await this.appointments.rescheduleIfAvailable(appointmentId, newStart, newEnd);
     if (!updated) {
-      throw new SlotUnavailableError('That time was just taken', {
+      throw new SlotUnavailableError("Cet horaire vient d'être réservé", {
         reason: 'CONFLICT' as UnavailabilityReason,
       });
     }
@@ -150,7 +150,7 @@ export class AppointmentService {
     await this.ensureCanManage(actor, appointment);
     if (appointment.status === 'CANCELLED') return appointment;
     if (appointment.status === 'COMPLETED') {
-      throw new ValidationError('A completed appointment cannot be cancelled');
+      throw new ValidationError('Un rendez-vous terminé ne peut pas être annulé');
     }
     return this.appointments.update(appointmentId, { status: 'CANCELLED' });
   }
@@ -183,7 +183,7 @@ export class AppointmentService {
   ): Promise<Paginated<AppointmentEntity>> {
     if (actor.role !== 'ADMIN') {
       const pro = await this.professionals.findById(professionalId);
-      if (!pro) throw new NotFoundError('Professional');
+      if (!pro) throw new NotFoundError('Professionnel');
       if (pro.userId !== actor.id) throw new ForbiddenError();
     }
     return this.appointments.listForProfessional(professionalId, params);
@@ -196,14 +196,14 @@ export class AppointmentService {
     serviceId: string,
   ): Promise<ServiceEntity> {
     const service = await this.services.findById(serviceId);
-    if (!service || service.professionalId !== professionalId) throw new NotFoundError('Service');
-    if (!service.isActive) throw new ValidationError('This service is no longer bookable');
+    if (!service || service.professionalId !== professionalId) throw new NotFoundError('Prestation');
+    if (!service.isActive) throw new ValidationError("Cette prestation n'est plus réservable");
     return service;
   }
 
   private async requireAppointment(id: string): Promise<AppointmentEntity> {
     const appointment = await this.appointments.findById(id);
-    if (!appointment) throw new NotFoundError('Appointment');
+    if (!appointment) throw new NotFoundError('Rendez-vous');
     return appointment;
   }
 
@@ -214,7 +214,7 @@ export class AppointmentService {
     ignoreAppointmentId?: string,
   ): Promise<EngineContext> {
     const pro = await this.professionals.findById(professionalId);
-    if (!pro) throw new NotFoundError('Professional');
+    if (!pro) throw new NotFoundError('Professionnel');
     const [timeOff, appointments] = await Promise.all([
       this.professionals.findTimeOff(professionalId, from, to),
       this.appointments.findInWindow(professionalId, from, to),

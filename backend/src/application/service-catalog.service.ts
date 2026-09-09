@@ -45,16 +45,16 @@ export class ServiceCatalogService {
 
   private async requireService(id: string): Promise<ServiceEntity> {
     const service = await this.services.findById(id);
-    if (!service) throw new NotFoundError('Service');
+    if (!service) throw new NotFoundError('Prestation');
     return service;
   }
 
   private async ensureProOwnership(actor: AuthenticatedActor, professionalId: string): Promise<void> {
     if (actor.role === 'ADMIN') return;
     const pro = await this.professionals.findById(professionalId);
-    if (!pro) throw new NotFoundError('Professional');
+    if (!pro) throw new NotFoundError('Professionnel');
     if (pro.userId !== actor.id) {
-      throw new ForbiddenError('You do not own this professional profile');
+      throw new ForbiddenError('Ce profil professionnel ne vous appartient pas');
     }
   }
 }

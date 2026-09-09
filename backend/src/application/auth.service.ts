@@ -30,7 +30,7 @@ export class AuthService {
   async register(input: RegisterInput): Promise<AuthResult> {
     const existing = await this.users.findByEmail(input.email);
     if (existing) {
-      throw new ConflictError('An account with this email already exists');
+      throw new ConflictError('Un compte existe déjà avec cette adresse e-mail');
     }
     const passwordHash = await hashPassword(input.password);
     const user = await this.users.create({
@@ -50,7 +50,7 @@ export class AuthService {
     const hash = user?.passwordHash ?? '$2a$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidin';
     const passwordOk = await verifyPassword(password, hash);
     if (!user || !user.isActive || !passwordOk) {
-      throw new UnauthorizedError('Invalid email or password');
+      throw new UnauthorizedError('E-mail ou mot de passe incorrect');
     }
     return this.issueSession(user);
   }
@@ -59,11 +59,11 @@ export class AuthService {
   async refresh(rawRefreshToken: string): Promise<AuthResult> {
     const record = await this.refreshTokens.findValidByHash(hashRefreshToken(rawRefreshToken));
     if (!record) {
-      throw new UnauthorizedError('Invalid or expired session');
+      throw new UnauthorizedError('Session invalide ou expirée');
     }
     const user = await this.users.findById(record.userId);
     if (!user || !user.isActive) {
-      throw new UnauthorizedError('Invalid session');
+      throw new UnauthorizedError('Session invalide');
     }
     await this.refreshTokens.revoke(record.id);
     return this.issueSession(user);

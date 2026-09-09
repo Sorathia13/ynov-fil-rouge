@@ -24,7 +24,7 @@ export class ValidationError extends AppError {
 export class UnauthorizedError extends AppError {
   readonly statusCode = 401;
   readonly code = 'UNAUTHORIZED';
-  constructor(message = 'Authentication required') {
+  constructor(message = 'Authentification requise') {
     super(message);
   }
 }
@@ -32,7 +32,7 @@ export class UnauthorizedError extends AppError {
 export class ForbiddenError extends AppError {
   readonly statusCode = 403;
   readonly code = 'FORBIDDEN';
-  constructor(message = 'You are not allowed to perform this action') {
+  constructor(message = "Vous n'êtes pas autorisé à effectuer cette action") {
     super(message);
   }
 }
@@ -41,7 +41,7 @@ export class NotFoundError extends AppError {
   readonly statusCode = 404;
   readonly code = 'NOT_FOUND';
   constructor(resource = 'Resource') {
-    super(`${resource} not found`);
+    super(`${resource} introuvable`);
   }
 }
 
