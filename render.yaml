@@ -1,0 +1,57 @@
+# Blueprint Render — hébergement de DÉMONSTRATION de SmartBooking.
+# But : une URL live temporaire pour l'oral. Ce n'est pas la config de production
+# (voir deploy/ pour l'approche Docker + Caddy sur VM).
+#
+# Après le 1er déploiement, lancer le seed UNE SEULE fois via le Shell du service
+# "smartbooking-api" :   npm run db:seed
+# (comptes démo : client@ / pro@ / admin@smartbooking.dev — mot de passe Password123!)
+#
+# Limites connues (plan gratuit) :
+#  - l'API s'endort après ~15 min d'inactivité (réveil ~1 min) → la réveiller avant l'oral.
+#  - le refresh-token cross-domaine (cookie SameSite=Lax) ne repartira pas au-delà de la
+#    durée du token d'accès (~15 min). Suffisant pour une démo courte.
+
+databases:
+  - name: smartbooking-db
+    plan: free
+    databaseName: smartbooking
+    user: smartbooking
+
+services:
+  # --- API Express (Node) ---
+  - type: web
+    runtime: node
+    name: smartbooking-api
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci && npm run prisma:generate && npm run build
+    startCommand: npm run prisma:migrate && npm run start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smartbooking-db
+          property: connectionString
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://smartbooking-web.onrender.com
+
+  # --- Frontend React / Vite (site statique) ---
+  - type: web
+    runtime: static
+    name: smartbooking-web
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://smartbooking-api.onrender.com/api
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
