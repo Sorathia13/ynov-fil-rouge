@@ -4,6 +4,9 @@
 
 **État :** `build passing` · `69 tests verts` · `TypeScript strict` · `Docker ready`
 
+**🚀 Démo en ligne : [smartbooking-web.onrender.com](https://smartbooking-web.onrender.com)** — comptes de démonstration `client@` · `pro@` · `admin@smartbooking.dev` (mot de passe `Password123!`).
+*Hébergement gratuit (Render) : la première requête peut prendre ~1 min, le temps que le service se réveille.*
+
 Projet fil rouge de la certification **RNCP 39583 — Expert en développement logiciel**, livrable du **BLOC 2 « Concevoir et développer des applications logicielles »**.
 Dépôt : [github.com/Sorathia13/ynov-fil-rouge](https://github.com/Sorathia13/ynov-fil-rouge)
 

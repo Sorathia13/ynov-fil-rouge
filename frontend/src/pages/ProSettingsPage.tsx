@@ -103,6 +103,11 @@ function ServicesSection({ professional }: { professional: Professional }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-professional'] }),
   });
 
+  const reactivate = useMutation({
+    mutationFn: (id: string) => api.patch(`/services/${id}`, { isActive: true }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-professional'] }),
+  });
+
   return (
     <section aria-labelledby="services-title" className="space-y-4">
       <h2 id="services-title" className="text-lg font-semibold">
@@ -123,7 +128,7 @@ function ServicesSection({ professional }: { professional: Professional }) {
                 {formatDuration(s.durationMinutes)} · {formatPrice(s.priceCents)}
               </p>
             </div>
-            {s.isActive && (
+            {s.isActive ? (
               <button
                 type="button"
                 className="btn-secondary"
@@ -131,6 +136,15 @@ function ServicesSection({ professional }: { professional: Professional }) {
                 disabled={deactivate.isPending}
               >
                 Désactiver
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => reactivate.mutate(s.id)}
+                disabled={reactivate.isPending}
+              >
+                Réactiver
               </button>
             )}
           </li>
