@@ -116,6 +116,9 @@ function ProDashboard() {
     );
   }
 
+  const services = profileQuery.data.services;
+  const serviceName = (sid: string) => services.find((s) => s.id === sid)?.name ?? 'Prestation';
+
   const now = Date.now();
   const weekEnd = now + 7 * 86_400_000;
   const items = apptsQuery.data?.items ?? [];
@@ -150,7 +153,10 @@ function ProDashboard() {
           <ul className="space-y-3">
             {upcoming.slice(0, 8).map((a) => (
               <li key={a.id} className="card flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm">{formatDateTime(a.startAt)}</p>
+                <div>
+                  <p className="font-medium">{serviceName(a.serviceId)}</p>
+                  <p className="text-sm text-slate-500">{formatDateTime(a.startAt)}</p>
+                </div>
                 <div className="flex items-center gap-3">
                   <StatusBadge status={a.status} />
                   {a.status === 'PENDING' && (
